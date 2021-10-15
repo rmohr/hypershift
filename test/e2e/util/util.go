@@ -24,7 +24,7 @@ import (
 
 	hyperapi "github.com/openshift/hypershift/api"
 	hyperv1 "github.com/openshift/hypershift/api/v1alpha1"
-	cmdcluster "github.com/openshift/hypershift/cmd/cluster"
+	aws "github.com/openshift/hypershift/cmd/cluster/aws"
 	consolelogsaws "github.com/openshift/hypershift/cmd/consolelogs/aws"
 	"github.com/openshift/hypershift/hypershift-operator/controllers/manifests"
 	"github.com/openshift/hypershift/support/upsert"
@@ -36,7 +36,7 @@ import (
 // This function calls t.Cleanup() with a function which tears down the cluster
 // and *blocks until teardown completes*, so no explicit cleanup from the caller
 // is required.
-func CreateCluster(t *testing.T, ctx context.Context, client crclient.Client, opts cmdcluster.Options, artifactDir string) *hyperv1.HostedCluster {
+func CreateCluster(t *testing.T, ctx context.Context, client crclient.Client, opts aws.Options, artifactDir string) *hyperv1.HostedCluster {
 	g := NewWithT(t)
 	start := time.Now()
 
@@ -74,7 +74,7 @@ func CreateCluster(t *testing.T, ctx context.Context, client crclient.Client, op
 
 	// Try and create the cluster
 	t.Logf("Creating a new cluster. Options: %v", opts)
-	if err := cmdcluster.CreateCluster(ctx, opts); err != nil {
+	if err := aws.CreateCluster(ctx, opts); err != nil {
 		teardown(context.Background())
 		g.Expect(err).NotTo(HaveOccurred(), "failed to create cluster")
 	}
@@ -103,11 +103,11 @@ func DumpHostedCluster(t *testing.T, ctx context.Context, hostedCluster *hyperv1
 			t.Errorf("Found %s messages in file %s", upsert.LoopDetectorWarningMessage, filename)
 		}
 	}
-	err := cmdcluster.DumpCluster(ctx, &cmdcluster.DumpOptions{
+	err := aws.DumpCluster(ctx, &aws.DumpOptions{
 		Namespace:   hostedCluster.Namespace,
 		Name:        hostedCluster.Name,
 		ArtifactDir: artifactDir,
-		LogCheckers: []cmdcluster.LogChecker{findKubeObjectUpdateLoops},
+		LogCheckers: []aws.LogChecker{findKubeObjectUpdateLoops},
 	})
 	if err != nil {
 		t.Errorf("Failed to dump cluster: %v", err)
@@ -122,7 +122,7 @@ func DumpHostedCluster(t *testing.T, ctx context.Context, hostedCluster *hyperv1
 func DumpAndDestroyHostedCluster(t *testing.T, ctx context.Context, hostedCluster *hyperv1.HostedCluster, awsCreds string, awsRegion string, baseDomain string, artifactDir string) {
 	DumpHostedCluster(t, ctx, hostedCluster, artifactDir, awsCreds)
 
-	opts := &cmdcluster.DestroyOptions{
+	opts := &aws.DestroyOptions{
 		Namespace:          hostedCluster.Namespace,
 		Name:               hostedCluster.Name,
 		Region:             awsRegion,
@@ -135,7 +135,7 @@ func DumpAndDestroyHostedCluster(t *testing.T, ctx context.Context, hostedCluste
 
 	t.Logf("Waiting for cluster to be destroyed. Namespace: %s, name: %s", hostedCluster.Namespace, hostedCluster.Name)
 	err := wait.PollImmediateUntil(5*time.Second, func() (bool, error) {
-		err := cmdcluster.DestroyCluster(ctx, opts)
+		err := aws.DestroyCluster(ctx, opts)
 		if err != nil {
 			t.Errorf("Failed to destroy cluster, will retry: %v", err)
 			return false, nil
@@ -355,7 +355,7 @@ func DumpGuestCluster(t *testing.T, ctx context.Context, client crclient.Client,
 
 	dumpDir := filepath.Join(destDir, "hostedcluster-"+hostedCluster.Name)
 	t.Logf("Dumping guest cluster. Namespace: %s, name: %s, dest: %s", hostedCluster.Namespace, hostedCluster.Name, dumpDir)
-	if err := cmdcluster.DumpGuestCluster(ctx, kubeconfigFile.Name(), dumpDir); err != nil {
+	if err := aws.DumpGuestCluster(ctx, kubeconfigFile.Name(), dumpDir); err != nil {
 		t.Errorf("Failed to dump guest cluster: %v", err)
 		return
 	}

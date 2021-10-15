@@ -1,4 +1,4 @@
-package cluster
+package aws
 
 import (
 	"context"
@@ -62,8 +62,8 @@ type Options struct {
 
 func NewCreateCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "cluster",
-		Short:        "Creates basic functional HostedCluster resources",
+		Use:          "aws",
+		Short:        "Creates basic functional HostedCluster resources on AWS",
 		SilenceUsage: true,
 	}
 
