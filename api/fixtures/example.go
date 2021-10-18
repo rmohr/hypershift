@@ -26,9 +26,13 @@ func (o *ExampleResources) AsObjects() []crclient.Object {
 	objects := []crclient.Object{
 		o.Namespace,
 		o.PullSecret,
-		o.KubeCloudControllerAWSCreds,
-		o.NodePoolManagementAWSCreds,
 		o.Cluster,
+	}
+	if o.KubeCloudControllerAWSCreds != nil {
+		objects = append(objects, o.KubeCloudControllerAWSCreds)
+	}
+	if o.NodePoolManagementAWSCreds != nil {
+		objects = append(objects, o.NodePoolManagementAWSCreds)
 	}
 	if o.SSHKey != nil {
 		objects = append(objects, o.SSHKey)
@@ -57,10 +61,14 @@ type ExampleOptions struct {
 	FIPS                             bool
 	AutoRepair                       bool
 	EtcdStorageClass                 string
-	AWS                              ExampleAWSOptions
+	AWS                              *ExampleAWSOptions
+	KubeVirt                         *ExampleKubeVirtOptions
 	NetworkType                      hyperv1.NetworkType
 	ControlPlaneAvailabilityPolicy   hyperv1.AvailabilityPolicy
 	InfrastructureAvailabilityPolicy hyperv1.AvailabilityPolicy
+}
+
+type ExampleKubeVirtOptions struct {
 }
 
 type ExampleAWSOptions struct {
@@ -125,14 +133,18 @@ aws_secret_access_key = %s
 			},
 		}
 	}
-	kubeCloudControllerCredsSecret := buildAWSCreds(
-		o.Name+"-cloud-ctrl-creds",
-		o.AWS.KubeCloudControllerUserAccessKeyID,
-		o.AWS.KubeCloudControllerUserAccessKeySecret)
-	nodePoolManagementCredsSecret := buildAWSCreds(
-		o.Name+"-node-mgmt-creds",
-		o.AWS.NodePoolManagementUserAccessKeyID,
-		o.AWS.NodePoolManagementUserAccessKeySecret)
+	var kubeCloudControllerCredsSecret *corev1.Secret
+	var nodePoolManagementCredsSecret *corev1.Secret
+	if o.AWS != nil {
+		kubeCloudControllerCredsSecret = buildAWSCreds(
+			o.Name+"-cloud-ctrl-creds",
+			o.AWS.KubeCloudControllerUserAccessKeyID,
+			o.AWS.KubeCloudControllerUserAccessKeySecret)
+		nodePoolManagementCredsSecret = buildAWSCreds(
+			o.Name+"-node-mgmt-creds",
+			o.AWS.NodePoolManagementUserAccessKeyID,
+			o.AWS.NodePoolManagementUserAccessKeySecret)
+	}
 
 	var sshKeySecret *corev1.Secret
 	var sshKeyReference corev1.LocalObjectReference
@@ -156,10 +168,36 @@ aws_secret_access_key = %s
 		sshKeyReference = corev1.LocalObjectReference{Name: sshKeySecret.Name}
 	}
 
+	var platformSpec hyperv1.PlatformSpec
+	if o.AWS != nil {
+		platformSpec = hyperv1.PlatformSpec{
+			Type: hyperv1.AWSPlatform,
+			AWS: &hyperv1.AWSPlatformSpec{
+				Region: o.AWS.Region,
+				Roles:  o.AWS.Roles,
+				CloudProviderConfig: &hyperv1.AWSCloudProviderConfig{
+					VPC: o.AWS.VPCID,
+					Subnet: &hyperv1.AWSResourceReference{
+						ID: &o.AWS.SubnetID,
+					},
+					Zone: o.AWS.Zone,
+				},
+				KubeCloudControllerCreds: corev1.LocalObjectReference{Name: kubeCloudControllerCredsSecret.Name},
+				NodePoolManagementCreds:  corev1.LocalObjectReference{Name: nodePoolManagementCredsSecret.Name},
+				ResourceTags:             o.AWS.ResourceTags,
+			},
+		}
+	} else {
+		platformSpec = hyperv1.PlatformSpec{
+			Type: hyperv1.NonePlatform,
+		}
+	}
+
 	var etcdStorgageClass *string = nil
 	if len(o.EtcdStorageClass) > 0 {
 		etcdStorgageClass = pointer.StringPtr(o.EtcdStorageClass)
 	}
+
 	cluster := &hyperv1.HostedCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "HostedCluster",
@@ -236,23 +274,7 @@ aws_secret_access_key = %s
 			},
 			ControllerAvailabilityPolicy:     o.ControlPlaneAvailabilityPolicy,
 			InfrastructureAvailabilityPolicy: o.InfrastructureAvailabilityPolicy,
-			Platform: hyperv1.PlatformSpec{
-				Type: hyperv1.AWSPlatform,
-				AWS: &hyperv1.AWSPlatformSpec{
-					Region: o.AWS.Region,
-					Roles:  o.AWS.Roles,
-					CloudProviderConfig: &hyperv1.AWSCloudProviderConfig{
-						VPC: o.AWS.VPCID,
-						Subnet: &hyperv1.AWSResourceReference{
-							ID: &o.AWS.SubnetID,
-						},
-						Zone: o.AWS.Zone,
-					},
-					KubeCloudControllerCreds: corev1.LocalObjectReference{Name: kubeCloudControllerCredsSecret.Name},
-					NodePoolManagementCreds:  corev1.LocalObjectReference{Name: nodePoolManagementCredsSecret.Name},
-					ResourceTags:             o.AWS.ResourceTags,
-				},
-			},
+			Platform:                         platformSpec,
 		},
 	}
 

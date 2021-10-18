@@ -2,6 +2,7 @@ package create
 
 import (
 	"github.com/openshift/hypershift/cmd/cluster/aws"
+	"github.com/openshift/hypershift/cmd/cluster/kubevirt"
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/hypershift/cmd/bastion"
@@ -23,6 +24,7 @@ func NewCommand() *cobra.Command {
 		SilenceUsage: true,
 	}
 	clusterCmd.AddCommand(aws.NewCreateCommand())
+	clusterCmd.AddCommand(kubevirt.NewCreateCommand())
 	cmd.AddCommand(clusterCmd)
 	cmd.AddCommand(infra.NewCreateCommand())
 	cmd.AddCommand(infra.NewCreateIAMCommand())

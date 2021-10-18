@@ -280,7 +280,7 @@ func CreateCluster(ctx context.Context, opts Options) error {
 		ControlPlaneAvailabilityPolicy:   hyperv1.AvailabilityPolicy(opts.ControlPlaneAvailabilityPolicy),
 		InfrastructureAvailabilityPolicy: hyperv1.AvailabilityPolicy(opts.InfrastructureAvailabilityPolicy),
 		EtcdStorageClass:                 opts.EtcdStorageClass,
-		AWS: apifixtures.ExampleAWSOptions{
+		AWS: &apifixtures.ExampleAWSOptions{
 			Region:                                 infra.Region,
 			Zone:                                   infra.Zone,
 			VPCID:                                  infra.VPCID,
