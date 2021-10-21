@@ -234,31 +234,36 @@ aws_secret_access_key = %s
 				{
 					Service: hyperv1.APIServer,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.LoadBalancer,
+						Type: hyperv1.NodePort,
+						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30099, Address: "192.168.66.101"},
 					},
 				},
 				{
 					Service: hyperv1.OAuthServer,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.Route,
+						Type: hyperv1.NodePort,
+						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30014, Address: "192.168.66.101"},
 					},
 				},
 				{
 					Service: hyperv1.OIDC,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.Route,
+						Type: hyperv1.NodePort,
+						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30015, Address: "192.168.66.101"},
 					},
 				},
 				{
 					Service: hyperv1.Konnectivity,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.Route,
+						Type: hyperv1.NodePort,
+						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30016, Address: "192.168.66.101"},
 					},
 				},
 				{
 					Service: hyperv1.Ignition,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.Route,
+						Type: hyperv1.NodePort,
+						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30017, Address: "192.168.66.101"},
 					},
 				},
 			},
