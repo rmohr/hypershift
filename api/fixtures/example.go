@@ -233,8 +233,7 @@ aws_secret_access_key = %s
 				{
 					Service: hyperv1.OIDC,
 					ServicePublishingStrategy: hyperv1.ServicePublishingStrategy{
-						Type: hyperv1.NodePort,
-						NodePort: &hyperv1.NodePortPublishingStrategy{Port: 30015, Address: "192.168.66.101"},
+						Type: hyperv1.None,
 					},
 				},
 				{
