@@ -3,11 +3,9 @@ package fixtures
 import (
 	"fmt"
 
+	hyperv1 "github.com/openshift/hypershift/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
-
-	hyperv1 "github.com/openshift/hypershift/api/v1alpha1"
 
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -193,10 +191,6 @@ aws_secret_access_key = %s
 		}
 	}
 
-	var etcdStorgageClass *string = nil
-	if len(o.EtcdStorageClass) > 0 {
-		etcdStorgageClass = pointer.StringPtr(o.EtcdStorageClass)
-	}
 
 	cluster := &hyperv1.HostedCluster{
 		TypeMeta: metav1.TypeMeta{
@@ -214,15 +208,6 @@ aws_secret_access_key = %s
 			},
 			Etcd: hyperv1.EtcdSpec{
 				ManagementType: hyperv1.Managed,
-				Managed: &hyperv1.ManagedEtcdSpec{
-					Storage: hyperv1.ManagedEtcdStorageSpec{
-						Type: hyperv1.PersistentVolumeEtcdStorage,
-						PersistentVolume: &hyperv1.PersistentVolumeEtcdStorageSpec{
-							StorageClassName: etcdStorgageClass,
-							Size:             &hyperv1.DefaultPersistentVolumeEtcdStorageSize,
-						},
-					},
-				},
 			},
 			Networking: hyperv1.ClusterNetworking{
 				ServiceCIDR: "172.31.0.0/16",
