@@ -51,13 +51,21 @@ func NewEtcdParams(hcp *hyperv1.HostedControlPlane, images map[string]string) *E
 		p.DeploymentConfig.Replicas = 1
 	}
 
-	switch hcp.Spec.Etcd.Managed.Storage.Type {
+	etcdStorageType := hyperv1.PersistentVolumeEtcdStorage
+	if hcp.Spec.Etcd.Managed != nil && hcp.Spec.Etcd.Managed.Storage.Type != "" {
+		etcdStorageType = hcp.Spec.Etcd.Managed.Storage.Type
+	}
+	switch etcdStorageType {
 	case hyperv1.PersistentVolumeEtcdStorage:
 		p.StorageSpec.PersistentVolume = &hyperv1.PersistentVolumeEtcdStorageSpec{
 			StorageClassName: nil,
 			Size:             &hyperv1.DefaultPersistentVolumeEtcdStorageSize,
 		}
-		if pv := hcp.Spec.Etcd.Managed.Storage.PersistentVolume; pv != nil {
+		var pv *hyperv1.PersistentVolumeEtcdStorageSpec
+		if hcp.Spec.Etcd.Managed != nil {
+			pv = hcp.Spec.Etcd.Managed.Storage.PersistentVolume
+		}
+		if pv != nil {
 			p.StorageSpec.PersistentVolume.StorageClassName = pv.StorageClassName
 			if pv.Size != nil {
 				p.StorageSpec.PersistentVolume.Size = pv.Size
