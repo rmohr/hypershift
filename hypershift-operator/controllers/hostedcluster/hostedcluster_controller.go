@@ -302,11 +302,17 @@ func (r *HostedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			Reason: "StatusUnknown",
 		}
 		if hcp != nil {
-			validConfigHCPCondition := meta.FindStatusCondition(hcp.Status.Conditions, string(hyperv1.ValidConfiguration))
-			if validConfigHCPCondition != nil {
-				condition.Status = validConfigHCPCondition.Status
-				condition.Message = validConfigHCPCondition.Message
-				condition.Reason = validConfigHCPCondition.Reason
+			if err := r.validConfigAndClusterCapabilities(hcp); err != nil {
+				condition.Status = metav1.ConditionFalse
+				condition.Reason = "ClusterCapabilitiesInsufficient"
+				condition.Message = err.Error()
+			} else {
+				validConfigHCPCondition := meta.FindStatusCondition(hcp.Status.Conditions, string(hyperv1.ValidConfiguration))
+				if validConfigHCPCondition != nil {
+					condition.Status = validConfigHCPCondition.Status
+					condition.Message = validConfigHCPCondition.Message
+					condition.Reason = validConfigHCPCondition.Reason
+				}
 			}
 		}
 		meta.SetStatusCondition(&hcluster.Status.Conditions, condition)
@@ -2929,6 +2935,15 @@ func (r *HostedClusterReconciler) reconcileMachineApprover(ctx context.Context, 
 		}
 	}
 
+	return nil
+}
+
+func (r *HostedClusterReconciler) validConfigAndClusterCapabilities(hcp *hyperv1.HostedControlPlane) error {
+	for _, svc := range hcp.Spec.Services {
+		if svc.Type == hyperv1.Route && !r.ManagementClusterCapabilities.HasRoutes() {
+			return fmt.Errorf("cluster does not support Routes, but service %v is exposed as route", svc.Service)
+		}
+	}
 	return nil
 }
 
